@@ -16,6 +16,7 @@
 | waypoint_nav.py | `7d6d8fa3ba541bc4202994e35827c95663298e0c045e1e35ff9d47725d0ec974` |
 | pos_hold.py | `f2a8b8af0f13b66e9f01d2edec107ac949efa6df72f391726399dfc0289ef5ab` |
 | laser_driver.py | `8e56ff24fc36b5d93945e8af42d512b0797f0f30540102c62bfe08367660db11` |
+| qr_vision_node.py | `be808e43155f053ac2d234486655aa12b26270e52804c82ffa1d368c7c2aba41` |
 
 ## F407
 
