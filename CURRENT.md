@@ -1,3 +1,10 @@
+## 2026-10-26 16:56 连续扫描/提速候选已部署（待飞）
+- 基线已推送到 `https://github.com/xiaojinhaobang/orangepi-content-analysis`，提交`24be96a`。旧live备份：mission `d27929b4…`、BVA `15c494e5…` → `backups/*_pre_fast_continuous_20261026.py`。
+- mission候选SHA `e23cc6bf…3fc2`：每排只保留进/出点，取消逐格航点；换排hold1.0→0.2s、换面hold0.5→0.2s；打点速度门20→26cm/s；新增基于连续两帧dx速率的预测过线打点（含“刚跨线但在瞄准窗内”的即时触发）。
+- BVA候选SHA `b73217a7…8a64`：首段/过渡vff20→24、扫描17→24、过渡及扫描加速20→30cm/s²、扫描近端10→5cm、短段6→3cm、扫描横向纠偏3→4、扫描航向PD上限5→6°/s。起飞命令/解锁/100cm交棒/Z控制顺序未改。
+- 验证：两文件py_compile PASS；`mission_node.py --check`仅生成进/出点航线；预测单测覆盖B4型稀疏帧、快速跨线和dy超限拒绝PASS。未做物理飞行验证，70s耗时尚未实测。
+- 部署：flight-link重启后active/running，BVA日志确认首段/扫描24cm/s；mission PID10324单实例、BVA PID10104、`/velocity_map`48–49Hz。FC仍mode1/unlock0、PWM0、高度5cm，未发START或飞行。
+
 ## 2026-10-26 10:32 B下排扫描高度下移5cm
 - 用户确认B面码比A面低，要求先下移5cm。候选文件 `mission_candidates/20261026_b_lower_minus5/mission_node.py`，基于运行版`a2eb8e05…`，新SHA `D27929B4…861A`。
 - 仅新增`B_LOWER_SCAN_DOWN_CM=5.0`及`row_camera_z()`：B下排相机目标111.5→106.5，机体航高103→98cm；A上/下排和B上排不变。
