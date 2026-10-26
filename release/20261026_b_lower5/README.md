@@ -13,6 +13,9 @@
 | fcstat_log.py | `aa90b6001b800cffb561a88fa95a93bcc04cbb455a1f6c1aa7b3759fc0d68cc3` |
 | uart_to_stm32.cpp | `6996080f6fe380a9a2f57683609e28efcec0eaebe6e85b30bb2609eb5fd02534` |
 | uart_to_stm32.hpp | `a270c2b19d2e276015902e408b0adbf931be4c9bcd216ce5be59366a6d0010ef` |
+| waypoint_nav.py | `7d6d8fa3ba541bc4202994e35827c95663298e0c045e1e35ff9d47725d0ec974` |
+| pos_hold.py | `f2a8b8af0f13b66e9f01d2edec107ac949efa6df72f391726399dfc0289ef5ab` |
+| laser_driver.py | `8e56ff24fc36b5d93945e8af42d512b0797f0f30540102c62bfe08367660db11` |
 
 ## F407
 
