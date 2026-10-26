@@ -1,0 +1,20 @@
+# Generated flight / bench data
+flight_data/
+lidar_bags/
+analysis_24d_20261018/
+stage1_20261021/
+.embeddedskills/
+
+# Firmware and flash images
+*.bin
+*.hex
+*.axf
+*.map
+
+# Runtime output
+*.log
+__pycache__/
+*.pyc
+*.bag
+*.db3
+
