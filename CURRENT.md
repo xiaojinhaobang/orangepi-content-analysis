@@ -1,3 +1,127 @@
+# 2026-10-26 20:43 v10实飞：A3/A5/A6漏发
+- 数据 `flight_data/20261026_vision_rot_v10_flight/`。A3/A2/A1/A4 有 EVENT，A5/A6 也有 EVENT；A3/A5/A6 未发激光。用户停机，B 面未测。
+- A3 中心帧 `dx≈-0.08、dy=+0.40`，被统一 A 面 `dy≤0.35` 挡；随后码向右离开。A5 `dx≈0.52→0.68`，A6 中心帧 `dx≈0.05` 后到 `0.41`，均未进入横向窗。不是任务漏触发，是起始/路径覆盖与门限。
+- 本地 v11 mission `mission_candidates/20261026_vision_rot_v11/mission_node.py` SHA `D008011E…35AB`：A3 专用竖直容差0.45；A 下排保留入口提前10cm，并在 A4 真实中心增加不驻留锚点（route y185），让 A5/A6 重新对齐。本地/板 `/tmp/v11check` 的 `py_compile`、`VISION_AIM_UNIT_OK`、`--check` PASS。未部署、未重启、未飞行。
+- v11 追加 A 行末提前放行：`A出-*` 的 `tol_cm` 8→15，保留0.2s hold；A1 打点→A出-0 的约5.3s行末爬行将缩短。扫描结束到 land 的 v9 实测为12.5s/约312cm≈25cm/s，属于匀速段，不是停顿。
+- 用户要求“一起改”后组合候选：mission v11 加 A 行末提前放行，BVA v8 `control_candidates/20261026_vision_rot_v8/body_vel_adapter.py` SHA `514CB345…2714` 只把过路段 `BVA_VFF/VMAX_FF` 24/26→30/30cm/s，扫描段不变。mission v11 当前 SHA `C7FD7C3E…931`；本地/板 `/tmp/v11ccheck`、`/tmp/v8ccheck` 的 `py_compile`、`VISION_AIM_UNIT_OK`、`ZCHANGE_UNIT_OK`、`--check` 均 PASS。未部署、未重启、未飞行。
+- 用户“部署”后已替换 live：mission v11 `C7FD7C3E…931`、BVA v8 `514CB345…2714`；备份 `mission_pre_v11_20261026_2055.py`（旧 v10 `A35BED24…0A7A`）和 `body_vel_pre_v8_20261026_2055.py`（旧 v7 `CF375D7E…7917`）。live `py_compile`、`--check` PASS；进程 PID3427/1905仍为旧代码，未重启、未发 START/解锁/飞行。
+- 20:55 换电上电 boot `4d229796-48f7-462d-b9b6-94fa22558a3b`：mission v11 PID3056、BVA v8 PID1910、arm_trigger PID3092 已加载；FC `mode1/unlock0/cmdCID0/cmd1=0`、高度1cm；mission 等 START，arm 等 CH5=2。
+- 21:45 v11/v8 实飞（数据 `flight_data/20261026_vision_rot_v11_flight/`）：12 EVENT，A1/B6 有 EVENT 无激光；A6/B2 有激光但用户报未命中。A1 码 `dx≈0.52→0.45`，未进横向窗；B6 最好 `dx≈0.04/dy≈0.19`，刚好在窗口边缘后 dy 到0.36；A6/B2 的未命中属于物理落点，不是算法漏发。
+- 结论：A1/B6 是行末/边缘的近阈值漏发；A6/B2 是物理瞄准偏差。继续给每格加容差会继续碎片化；建议下一步改用逐格短停（每格约0.4s）建立可靠基准，再决定是否恢复连续扫描。
+- 用户拒绝0.4s×12的10–15s代价，改为 v12 mission `mission_candidates/20261026_vision_rot_v12/mission_node.py` SHA `3268D593…6600`：`CELL_HOLD_S=0.2`、`CONTINUOUS_SCAN=False`，12格各短停0.2s；A4锚点仅在连续扫描时启用，BVA v8提速30/30不变。板 `/tmp/v12check` `py_compile`、`VISION_AIM_UNIT_OK`、`--check` PASS，路线含12货位；名义增加2.4s。未部署、未重启、未飞行。
+- 21:58 v12实飞（`flight_data/20261026_vision_rot_v12_flight/`）：12 EVENT，11次激光；唯一漏发 A1。A1短停时 QR `center x≈270`（dx≈-0.58），不是门限抖动，而是 A1 机位横向偏；A2/A3/A4/A5/A6 及 B 面均已出光。
+- 本地 v13 mission `mission_candidates/20261026_vision_rot_v13/mission_node.py` SHA `8A716E07…5318`：仅 A1 机位 y+10cm（route 185→195），不改其他格、门限或速度。板 `/tmp/v13check` `py_compile`、`VISION_AIM_UNIT_OK`、`--check` PASS，A1 显示 y195。未部署、未重启、未飞行。
+- 用户“部署”后已替换 live mission v13 `8A716E07…5318`；v12 备份 `mission_pre_v13_20261026_2125.py`（`3268D593…6600`），BVA v8 `514CB345…2714` 未改。live `py_compile`、`--check` PASS，A1 y195；mission PID3062仍为旧进程，未重启、未发 START/解锁/飞行。
+- 21:26 重启后 boot `7b20cd84-4746-4e0b-8eec-4bc069f78a70`：mission v13 PID3045、BVA v8 PID1895、arm_trigger PID3081 已加载；FC `mode1/unlock0/cmdCID0/cmd1=0`、高度3cm。
+- 用户重启链路后，以 TERM 结束 flight-link MainPID1114，服务 Restart=always 重启；新 launch MainPID4374、UART PID4495、BVA v8 PID4522、PID控制 PID4537。mission/arm 保持 PID3045/3081（v13），FC `mode1/unlock0/cmdCID0/cmd1=0`，未发 START/解锁/飞行。
+- 22:?? 换电上电 boot `572d76e5-8899-4bc4-b584-fd61bbc42235`：mission v13 PID3027、BVA v8 PID1909、arm_trigger PID3082 已加载；FC `mode1/unlock0/cmdCID0/cmd1=0`、高度4cm。
+- 用户“部署”后已替换 live mission v12 `3268D593…6600`；v11 备份 `mission_pre_v12_20261026_2110.py`（`C7FD7C3E…931`），BVA v8 `514CB345…2714` 未改。live `py_compile`、`--check` PASS，路线含12货位；mission PID3056仍为旧进程，未重启，未发 START/解锁/飞行。
+- 21:10 换电上电 boot `c40960eb-fc81-44e7-a444-c9d6f98613d9`：mission v12 PID3062、BVA v8 PID1915、arm_trigger PID3100 已加载；FC `mode1/unlock0/cmdCID0/cmd1=0`、高度1cm。
+
+# 2026-10-26 20:35 v10实飞：旋转前自降，先查CH6
+- 数据 `flight_data/20261026_selfland_rotation_v10/`。实际下降在约20:34:44开始，早于BVA旋转指令（20:34:56）；高度约98cm→2cm，PWM降18%。
+- 同期 `/fc_diag`：`rc_lost=0、rc_failsafe=0、land_calls=0、cmd_lost=0、fbk_lost=0`，电压约15.6V；`cmd1`全程仍为4，`cmd1=6`未出现。不能把4当成新发降落命令；也不是 mission 的 `0x66[2]` 降落路径。
+- 关键安全异常：CH6 原始值为 **2008（高位）**，从起飞到落地一直高位；CH5=1506。此前已记录只有 CH6 低位才是安全态，CH6 高位曾触发一键链。当前最优先是 CH6 开关位置/线序/通道确认；本轮不继续改任务或飞行。
+- 当前 FC `mode2/unlock0/cmdCID16/cmd1=4`，高度约1–2cm；mission/waypoint 进程仍存在，但未发 START/解锁/飞行。下次飞行前必须断电重启并确认 CH6 低位、飞控锁定。
+- 用户明确“线序不会有问题，不用管”后按操作手判断继续；20:41 换电上电 boot `e5727a8b-9cfb-4ebd-9a92-8dca52035745`，mission v10 PID3427、BVA v7 PID1905、arm_trigger PID3724 已加载，FC `mode1/unlock0/cmdCID0/cmd1=0`、高度1cm；此轮不再以 CH6 作为放行门。
+
+# 2026-10-26 20:16 v8/v7实飞：A3无EVENT、B6速度门未发
+- 数据 `flight_data/20261026_vision_rot_v8_flight/`。A 面日志只有 A2/A1/A4/A5/A6 五个 EVENT；**A3（货号17）没有 EVENT**，不是激光被门挡住。A3 在到达 A进-0 前以边缘 dx≈0.81–0.84 出现，到达 A进-0 时已离开，随后扫描第一格是 A2。A面其余5格均发出 0.1s 激光；用户所说“几个没打到”若包含物理漏斑，需具体格号和偏方向，不能仅凭日志猜。
+- B6：6933.578 EVENT，6934.304 中心帧 `dx=-0.04 dy=+0.11 mark_ok=True speed=26cm/s`，被 `MARK_SPEED_MAX=26` 拒绝；随后 B出-1→B进-0 上升，B6 pending 未再获得中心帧，故没发激光。根因是末格速度门边缘，不是漏 EVENT。
+- 自转：B侧到达 6916.969→掉头 6924.467（7.50s），掉头→B进-1 6927.871（3.40s）；没有明显的掉头后长静止。此轮“停留”仍需区分是旋转本体还是 B 进点。
+- 本轮未改 live 文件；待明确 A 面具体漏点后再做候选，避免继续盲调。
+- 用户明确 A 面漏点为 **A3 右上第一个** 和 **A6 右下角**。A3 无 EVENT（起始覆盖不足）；A6 有 EVENT 且发了激光，但预测在 `dx=+0.18/dy=+0.20` 提前 0.17s 触发，实际过线约0.33s后，属于提前打偏。注意 A 面左右：面向 A 面时右侧=y小，A3 是右上、A6 是右下。
+- 本地 v9 mission `mission_candidates/20261026_vision_rot_v9/mission_node.py` SHA `1D92F5E6…72D1`：A进-0 提前10cm（机体y60）、A6/B6禁用预测打点、末格速度上限26→28；B上排/换高/其余航点不变。本地及板 `/tmp/v9check` 的 `py_compile`、`VISION_AIM_UNIT_OK`、`--check` PASS；A进-0显示y60。未部署、未重启、未飞行。
+- 20:27 v9 实飞：12 个 EVENT，但只发 10 次激光，漏 **A4、B3**。A4 码在 `dx≈0.34–0.39` 始终没进横向瞄准线；B3 码从入场 dy≈-0.58 移到约0，旧目标 -0.23 没有合适交会帧。A3/A6/B6 已恢复。
+- 本地 v10 mission `mission_candidates/20261026_vision_rot_v10/mission_node.py` SHA `A35BED24…0A7A`：A上排和下排入口都提前10cm（A进-0 y60、A进-1 y210），补 A4 起始覆盖；B3 瞄准线从 -0.23 改为和 B1/B2 一致的 -0.03±0.06。本地/板 `/tmp/v10check` 的 `py_compile`、`VISION_AIM_UNIT_OK`、`--check` PASS。未部署、未重启、未飞行。
+- 用户“部署”后已替换 live mission v10 `A35BED24…0A7A`；v9 备份 `mission_pre_v10_20261026_2035.py`（`1D92F5E6…72D1`），BVA v7 `CF375D7E…7917` 未改。live `py_compile`、`--check` PASS，A进-0 y60、A进-1 y210；mission PID3040仍为旧进程，未重启，未发 START/解锁/飞行。
+- 20:34 换电上电 boot `f0b092e5-445e-4e05-96a5-a6045064211f`：mission v10 PID3035、BVA v7 PID1904、arm_trigger PID3071 已加载；FC `mode1/unlock0/cmdCID0/cmd1=0`、高度1cm、电压16.36V；rc_lost=1，遥控未开。
+- 用户“部署”后已替换 live mission v9 `1D92F5E6…72D1`；v8 备份 `mission_pre_v9_20261026_2025.py`（`20112189…4E71`），BVA v7 `CF375D7E…7917` 未改。live `py_compile`、`--check` PASS，A进-0显示y60；mission PID3012仍为旧进程，未重启，未发 START/解锁/飞行。
+- 20:24 换电上电 boot `1cb13b8d-22d2-430a-b761-cb2193be1e6d`：mission v9 PID3040、BVA v7 PID1913、arm_trigger PID3077 已加载；FC `mode1/unlock0/cmdCID0/cmd1=0`、高度4cm、电压16.46V；rc_lost=1，遥控未开。mission 等 START，arm 等 CH5=2。
+
+# 2026-10-26 19:48 v5实飞：B下→上进高不竖直，B3/B2漏斑
+- 数据 `flight_data/20261026_vision_rot_v5_flight/`。用户反馈前面均正常，只有 B 右下→右上上升不竖直，B 上排右侧两格（B3/B2）无斑。
+- B3/B2/B1 实际都发出了 0.1s 激光：B3 `5070.645 dx=-0.01 dy=-0.33`、B2 `5074.765`（预测 dx=-0.22，实际约 -0.06）、B1 `5076.997 dx=-0.01 dy=-0.03`；B1 物理命中，B3/B2 未命中。不是漏 EVENT，也不是驱动未触发。
+- 上升轨迹：rec t1642.85–1646.80，h 98→135cm；x 181.6→189.0→186.2，y 195.7→189.9→196.6，最大水平漂移 **8.7cm**，净 x +4cm。原因是 BVA 在 Z 上升期间仍按 B进-0 的 XY 目标做修正，不是纯竖直；不是 kp_z。
+- BVA v6 候选 `control_candidates/20261026_vision_rot_v6/body_vel_adapter.py` SHA `3B56D288…1839`：检测 airborne、active2、Z 上升≥20cm 且 XY 目标变化≤12cm 时，锁定进入时 XY，只输出 Z；高度到位±2cm释放。未部署。
+- mission v6 候选 `mission_candidates/20261026_vision_rot_v6/mission_node.py` SHA `52CF27A9…001A`：B上排维持133.5cm；B2/B1按 v5 实测命中线改为 dy=-0.03（容差0.03），B3保留入口线 -0.28±0.10；B进-1 tol25、B进-0 ztol2 不变。未部署。
+- 离线：两候选本地与板 `/tmp` 的 `py_compile`、`ZCHANGE_UNIT_OK`、`VISION_AIM_UNIT_OK`、mission `--check` 均 PASS；`--check` B上134、B下98。尚需实飞验证；飞行前仍需断电重启清落地锁定。
+- 用户要求 B 上排再加2cm：v7 mission `mission_candidates/20261026_vision_rot_v7/mission_node.py` SHA `2243DFFF…453F`，目标133.5→135.5cm；按约0.05归一化/cm把 B1/B2/B3 的 dy 目标平移到 +0.07/-0.02/-0.23，容差0.06/0.06/0.10。BVA v6 候选不变（换高锁XY）。本地及板 `/tmp/v7check` 的 `py_compile`、`VISION_AIM_UNIT_OK`、`--check` PASS，路线 B上显示136cm。未部署。
+- 用户“部署”后已替换 live：mission v7 `2243DFFF…453F`、BVA v6 `3B56D288…1839`；备份 `mission_pre_v7_20261026_1955.py`（旧 v5 `FFED7257…5EFC`）和 `body_vel_pre_v6_20261026_1955.py`（旧 v3 `4D496AAF…32E7`）。live `py_compile`、`--check`、`ZCHANGE_UNIT_OK` PASS，B上显示136cm；未重启。当前 mission 进程已退出、BVA PID1914仍加载旧 v3；下次启动/重启后才会加载 v7/v6，未发 START/解锁/飞行。
+- 19:58 换电上电 boot `70a5212d-deb3-48aa-ad67-2bf399fffbcd`：mission v7 PID3197（等 START）、BVA v6 PID1907、arm_trigger PID3283（0.8s，等 CH5=2）均已加载。FC `mode1/unlock0/cmdCID0/cmd1=0`、高度1cm、电压16.20V；rc_lost=1，遥控尚未开。pos_hold 由 mission 在 START 后拉起。
+- 20:00 v7/v6 实飞（数据 `flight_data/20261026_vision_rot_v7_flight/`）：A2 EVENT 6001.902，6002.410 中心帧 `mark_ok=False`，BVA 日志同一时刻航向 err=6.0°，姿态门在 6°阈值附近抖动；B3 EVENT 6049.893，h=130/132 时被 B 上排高度门挡住（target135.5），等到 h136 后已离窗；B3 没有发激光，不是瞄准门。B2/B1 仍然发激光。
+- 自转量化：A→B 侧到达 6029.021→掉头 6037.716（8.70s，主要是旋转本体约8.5s）；掉头→B进-1 6041.415（3.70s，88cm移动），B进-1→B出-1 6048.115（6.70s）。未发现掉头后长时间静止；用户感知的停留需区分是旋转过程还是 B 进点。
+- 本地 v8/v7 候选未部署：mission `mission_candidates/20261026_vision_rot_v8/mission_node.py` SHA `20112189…4E71`，B3 入口高度门单独放宽到 target−6cm（允许 h≥129.5）以接住入场码；BVA `control_candidates/20261026_vision_rot_v7/body_vel_adapter.py` SHA `CF375D7E…7917`，A2 航向误差门 6→7°；保留 v6 换高锁 XY。两候选本地/板 `/tmp` 的 `py_compile`、`VISION_AIM_UNIT_OK`、`ZCHANGE_UNIT_OK`、`--check` 均 PASS。未部署、未重启、未飞行。
+- 用户“部署”后已替换 live：mission v8 `20112189…4E71`、BVA v7 `CF375D7E…7917`；备份 `mission_pre_v8_20261026_2010.py`（旧 v7 `2243DFFF…453F`）和 `body_vel_pre_v7_20261026_2010.py`（旧 v6 `3B56D288…1839`）。live `py_compile`、`--check`、两项单测 PASS；mission PID3197和BVA PID1907仍是旧进程，未重启，未发 START/解锁/飞行。需重启链路才会加载 v8/v7。
+- 20:10 重新上电 boot `967ef6fc-5e2c-4561-bb22-bde7886e9c09`：mission v8 PID3012、BVA v7 PID1912、arm_trigger PID3048 已加载。FC `mode1/unlock0/cmdCID0/cmd1=0`、高度约2cm、电压16.31V；rc_lost=1，遥控未开。pos_hold 仍由 mission 在 START 后拉起。
+
+# 2026-10-26 19:38 v4实飞：B上排偏低/掉头后停5.5s
+- 数据 `flight_data/20261026_vision_rot_v4_flight/`：12 EVENT，B上排 B3 只有 EVENT 未发激光；B2/B1 分别 4199.586/4201.796 发 0.1s，打点 dy=-0.37/-0.34。用户反馈 B上排整体偏低，要求目标加回5cm。
+- B上排航线 z=128，rec 实测约128–130cm；B2/B1 命中时 dy 已到 -0.37/-0.34，B3 入场 dy 约 -0.57，说明当前固定 dy=-0.30 不适用于三格，B3 被竖直瞄准线挡掉。
+- 掉头后时序：`过渡-掉头` 4178.861→`B进-1` 4188.563（9.70s）；rec 在 y≈65cm 附近速度<5cm/s 连续约5.5s、净回退约3cm，随后才以约24cm/s进入 B下排。根因是 `B进-1` 仍按默认8cm收口，BVA先刹停再切扫描线；不是 z 速度或姿态卡住。
+- 本地 v5 `mission_candidates/20261026_vision_rot_v5/mission_node.py` SHA256 `FFED7257…5EFC`：B上排目标 128→133.5cm；逐格 dy 目标 B3=-0.28/B2=-0.13/B1=-0.10、容差0.10；B进-0 ztol 4→2cm；B进-1 提前25cm交棒给扫描线。未部署、未重启、未飞行。
+- 离线：本地及板 `/tmp/v5check` 的 `py_compile`、`VISION_AIM_UNIT_OK`、`--check` PASS；路线 B上排显示134cm（源码目标133.5），A上142/A下100/B下98不变。B进-1 的 tol 和 B进-0 ztol 需在实飞/日志中验证，不能把静态检查当物理通过。
+- 19:41 换电上电 boot `bb0fb34a-aa29-4d94-a97c-87f135519228`；v5 已实际加载，mission PID3013 等 `/gs/start`，arm_trigger PID3258（0.8s）等 CH5=2，BVA 单实例。FC 新 boot 为 `mode1/unlock0/cmdCID0/cmd1=0`、高度2cm、电压16.49V；rc_lost=1 说明遥控尚未开。pos_hold 由 mission 在 START 后拉起。
+- 用户“部署”后已替换 live mission 为 v5 `FFED7257…5EFC`；v4 备份 `/home/orangepi/diag/backups/mission_pre_v5_20261026_1940.py`（`6A1237D1…2005D`）。live `py_compile` 与 `--check` PASS，B上排显示134cm。mission PID3397仍是部署前进程；未重启/START/解锁/飞行，FC保持 `mode1/unlock0/cmdCID16/cmd1=4` 的落地锁定态。
+
+# 2026-10-26 19:30 v4 本地候选：B上排竖直光斑偏置
+- 用户确认 v3 实飞 B 上排右侧 B3 **有光斑**，左/中 B1/B2 **无光斑**；12 个 EVENT 与 B3/B2/B1 三次亮灭均正常，排除漏触发。
+- 坐标口径：B 面外侧面对板看，左=B1、中=B2、右=B3；扫描检测顺序是 B3→B2→B1，不能按“先出现”判左右。CSV 货号 B1=8、B2=11、B3=9 对应正确。
+- 脉冲证据：B3 `404.903s dx=-0.03 dy=-0.34 6cm/s`，B进-0 到达前 0.23s、仍在爬升；B2 `408.282s dx=-0.02 dy=+0.01 25cm/s`；B1 `410.246s dx=-0.05 dy=+0.05 25cm/s`。B1/B2 图像横向/纵向均在中心，仍无斑，说明是物理激光光轴纵向偏差，不是码位映射或图像中心判据。
+- 换高等待：A1 最后打点→z 指令转负 3.77s（实际开始下降 4.4s）；B6→z 指令转正 0.62s（实际开始上升 0.92s）。waypoint 到达→z 切换约 0s/0.06s；不是 mission 长阻塞、hold 或 kp_z/max_vertical_velocity。上排→下排的可见等待主要耗在 A1 后横向收口到行末 8cm。
+- 本地候选 `mission_candidates/20261026_vision_rot_v4/mission_node.py` SHA256 `6A1237D1…2005D`：仅 B 上排目标 136.5→128.5cm，新增 B 上排竖直瞄准线 `dy=-0.30±0.14` 和 ±3cm 高度放行；A/B 下排保持原标定。未部署、未重启、未飞行。
+- 离线验证 `test_vision_aim_unit.py` PASS，覆盖 B1/B2/B3 映射、B3 命中脉冲放行、B1/B2 原脉冲拒绝、B 上排高度门与其余排不变；`py_compile` PASS。尚需实飞确认 128.5cm 是否使 B1/B2 的 dy 约落到 -0.30，不能把本候选当物理命中验收。
+- 上板 `/tmp/v4check/` 检查 PASS：候选 SHA 与本地一致 `6A1237D1…2005D`；`py_compile`、`VISION_AIM_UNIT_OK` 均通过。`--check` 输出 A上142/A下100/B下98/B上128；末尾“0 个货位”是连续扫描只列进/出点的既有口径，不是漏航点。
+- 检查未改 live：mission `D20A66C1…F380`、waypoint `12413884…9260`、BVA `4D496AAF…32E7` 保持；flight-link active，进程仍为原单实例。未部署、未重启、未发 START、未解锁、未飞行。
+- 用户明确“部署”后已替换 live mission：新 SHA `6A1237D1…2005D`，`py_compile` PASS；v3 备份 `/home/orangepi/diag/backups/mission_pre_vision_aim_v4_20261026_1935.py`（SHA `D20A66C1…F380`）。waypoint/BVA 未改。
+- 未重启：mission PID3331、waypoint PID4066、BVA PID1894 仍是部署前进程，内存中仍加载 v3 mission；未发 START/解锁/飞行。v4 需重启 mission 才生效。
+- 19:26 换电上电 boot `ad1ddc3c-f648-4662-8df2-6df866fa3f3e`；live mission SHA `6A1237D1…2005D`、waypoint `12413884…9260`、BVA `4D496AAF…32E7` 均正确，flight-link active。开机只自动拉起 BVA；19:26:50 手工补起整条任务 mission PID3397，等待 `/gs/start`，并保留自动 arm_trigger PID3173（0.8s，等 CH5=2）。
+- 地面核对：FC `[1,0,0,0,0,0,0]`=`mode1/unlock0/cmdCID0/cmd1=0`、高度3cm、PWM0、电压16.49V；`rc_lost=1` 表示遥控尚未打开。`/target_velocity` 当前无消息但 publisher1/subscriber4；mission 在 START 后会拉 pos_hold 产生零速流，不能把起飞前空话题当作故障。
+
+# 2026-10-26 18:46 B上排高度/首个漏码/掉头放行 v3 候选
+- 数据：`flight_data/20261026_vision_rot_v2/`（v2 实飞）。12 EVENT；A3 未发激光，其余 11 个 EVENT 均触发；用户反馈 B 上排仍偏高/不稳、自转结束后等待。
+- A3：1156.305 采纳；1157.414 姿态门关闭（err=5.1°），1158.147 跨目标线时仍未放行，下一帧已离窗。v3 姿态门 5°/15→6°/18。
+- Retracted: 上一节把 BVA 1198.415 的 `航向PD[scan]` 到 waypoint 1198.762 的 0.34s 当成物理航向结束到放行；该说法错误。BVA 日志与 waypoint TF 航向不是同一状态量。自转指令从1188.0饱和到1195.4，之后从约5°误差继续收敛，用户可见旋转结束到掉头点放行仍有约1.3–3s。
+- 掉头 v3：`ROTATE_YTOL_DEG 3→5`、保留 `tol_cm=14`；`waypoint_nav` 优先使用与 BVA 相同的 `/heading_fused`（0.5s 新鲜门），过期回退 TF，避免控制航向与放行航向不同步。
+- B 上排：原始高度 142–144cm（目标142）；目标下移5cm，干跑机体高度 136cm。另把 `B进-0` 的 `ztol_cm` 收到4cm，避免实测仍在 `dz=8cm` 时就开始扫描、爬升与扫描叠加造成不稳。
+- 候选 SHA：mission `D20A66C1…F380`、waypoint `12413884…9260`、BVA `4D496AAF…32E7`。本地及板上 `/tmp` py_compile、几何/融合航向单测、mission `--check` 均 PASS；未部署、未飞行。
+
+### 18:51 v3 已部署待飞
+- 飞控 `mode2/unlock0/PWM=0` 时备份后缀 `20261026_185059`，替换 `mission_node.py`、`waypoint_nav.py`、`body_vel_adapter.py`；live SHA 与上述候选一致。
+- `flight-link.service` active；mission PID9256、BVA PID9605、arm_trigger PID9420、pos_hold PID10244 单实例，`/target_velocity` 零速流、`/mark_ok` 1发布/1订阅正常。未发 START、未飞行。
+- `/heading_fused` 当前无飞行时发布，waypoint_nav 会在 0.5s 新鲜门内使用融合航向，否则回退原 TF；本轮掉头加速主要还依赖 `ytol 5°`、`tol_cm 14` 与 `B进-0 ztol 4cm`。
+
+### 18:57 换电后待飞
+- 新 boot `12270055-93a5-44a2-9901-6447d55fd8a8`；三份 v3 SHA 保持 `D20A66C1…F380` / `12413884…9260` / `4D496AAF…32E7`，flight-link active。
+- 自动拉起 mission PID3331、arm_trigger PID3367；pos_hold 未自动启动，已补为 PID3814，`/target_velocity` 零速流正常。FC `mode1/unlock0`，未发 START/未飞行。
+
+# 2026-10-26 18:30 打点命中率/旋转尾停分析与候选
+- 数据：`flight_data/20261026_fast_fixes_test1/`。12 个 EVENT，实际激光 7 次；未发为 A3、A2、A6、B2、B1。用户确认已触发点位均物理命中。
+- A3/A2：A3 瞄准窗内被 `err=4.1°` 挡住，A2 被 `gz=12.3°/s` 挡住；候选姿态门 4°/12→5°/15，仍由 mission `running` 约束激光所有权。
+- A6：目标水平经过时 `dy≈0.40`，被竖直门排除；A 下排整体下移 3cm（机体 103→100），用实际相机反馈把 A6 拉回中心，A4/A5 当前 dy 为 0.12/0.18，预计仍在窗口内。
+- B2/B1：QR 有效结果约 3Hz，跨帧直接跳过瞄准线。mission 启动 QR 时新增 `confirm_frames:=1`、`publish_debug:=false`（保留 `detect_every:=2`）；固定样本基准有效结果 4.8→5.8Hz，且 debug 发布降 CPU。预测打点去掉行末会随位姿翻列的冗余 label 复核，只保留 pending/bound/fresh/stable 门。
+- 掉头：本轮航向在约 6.8s 完成，但位置残差约 11cm 使 8cm 容差又等 3.4s。候选掉头点 `tol_cm=14`，航向完成即进入 B 进点，位置残差由 B 面直线段自然收口；保留 0.2s hold 和 3°航向门。
+- 本地候选：`mission_candidates/20261026_vision_rot_v2/mission_node.py` SHA `F3AD9460…C0FC`；`control_candidates/20261026_vision_rot_v2/body_vel_adapter.py` SHA `846D0D49…3243`。本地及板上 `/tmp` 的 py_compile、几何测试、mission `--check` 均 PASS；A 下排干跑高度 100cm。未部署、未飞行。
+
+### 18:36 换电后部署状态
+- 已在换电前备份后缀 `20261026_183309` 并替换 live 文件；换电重启后 boot `8375bff8-1c00-45fd-9cfd-a4301612efd8`，两文件 SHA 仍为 `F3AD9460…C0FC` / `846D0D49…3243`，`flight-link.service` active。
+- 上电后自动链路未拉起 mission/arm/pos_hold；已恢复单实例 mission PID3486、arm_trigger PID3524、pos_hold PID3900，`/target_velocity` 输出零速。FC 地面 `mode1/unlock0/PWM=0`，未发 START、未飞行。
+
+# 2026-10-26 17:30 连续扫描四问题候选已部署（未启动任务）
+
+- 本轮实飞数据：`flight_data/20261026_fast_continuous/`。`cmd1=5` 在 `t=82.73s`，落地锁定 `t=174.38s`，飞行 **91.65s**（上一轮 131.25s）。12 个 EVENT，但只有 11 条软件激光触发；A3 有 EVENT 无激光。
+- A3：采纳时 `active_controller` 仍为 1，527.25s 恢复 2 时码已离开瞄准窗；旧 `/mark_ok` 把控制器选择混入物理姿态门。候选改为仅检查高度、陀螺 Z、航向误差，mission 以 `running` 作为任务/激光所有权门，并记录姿态门变化与未放行原因。
+- 物理打偏：旧 `MARK_WINDOW_TOL=0.22` 抢先于预测打点。B6 在 `dx=+0.13`、B3 在 `dx=-0.23` 直接触发（目标 `-0.06`）；候选收紧到 `0.10`，让预测/过线路径在目标附近触发，并检查相机瞄准数据新鲜度。
+- 掉头尾停：`过渡-到达B面侧→过渡-掉头` 10.40s、掉头→稳定 2.20s。旧 BVA 自转锁实际位姿 `(183.0,-11.8)`，与计划点 `(183.5,-18.1)` 对拉；候选锁计划目标，回位上限 8→12cm/s（仍低于扫描 24），删除同位置重复“稳定”点，只保留掉头点 `hold=0.2s` + 3°航向门。
+- B 下排直线：实测线拟合斜率 2.79°，起点偏差约 6cm、最大横向误差 7.21cm。根因是走廊方向从提前到点的实机位姿起锁；候选改为用“上一计划航点→当前计划航点”锚定 BVA 固定方向与横漂基线。
+- 候选：`mission_candidates/20261026_fast_fixes/mission_node.py` SHA256 `4370AAE1…60DA`；`control_candidates/20261026_fast_fixes/body_vel_adapter.py` SHA256 `DBB01364…7906`。`py_compile` PASS；板上 `--check` 及 `test_geometry_unit.py`/`test_prediction_unit.py` PASS。
+- 已在飞控 `mode1/unlock0/PWM=0` 时备份并部署到 `/home/orangepi/diag/`，备份后缀 `20261026_172826`；`flight-link.service` active，新 BVA PID12337。按用户要求未发 START、未解锁、未飞行、未再启动任务。旧 mission/waypoint 是上一轮 `setsid` 进程（PID3507/4261），下次上电或启动任务前需确认新 mission 进程已加载上述哈希。
+
+## 2026-10-26 18:18 链路重启，等待解锁
+- 用户首次触发未起飞；`/tmp/mission.log` 只有“就绪，等 /gs/start”，无 START/起飞记录。飞控保持 `mode1/unlock0`、PWM=0、高度3cm、16.48V。
+- 保存旧日志到 `/home/orangepi/traces/chain_restart_20261026_181645/`；停止旧 mission/arm/pos_hold，重启 `flight-link.service`，新 BVA 与 cron 自动拉起的 mission/arm_trigger 已运行。
+- 自动拉起缺 `pos_hold`。已手工启动唯一实例；`/target_velocity` 实测新鲜零速，mission PID5709、arm_trigger PID5875、pos_hold PID6961 各单实例。未发 START、未解锁、未飞行。
+
 ## 2026-10-26 16:56 连续扫描/提速候选已部署（待飞）
 - 基线已推送到 `https://github.com/xiaojinhaobang/orangepi-content-analysis`，提交`24be96a`。旧live备份：mission `d27929b4…`、BVA `15c494e5…` → `backups/*_pre_fast_continuous_20261026.py`。
 - mission候选SHA `e23cc6bf…3fc2`：每排只保留进/出点，取消逐格航点；换排hold1.0→0.2s、换面hold0.5→0.2s；打点速度门20→26cm/s；新增基于连续两帧dx速率的预测过线打点（含“刚跨线但在瞄准窗内”的即时触发）。

@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=飞行控制台
+Comment=香橙派无人机链路控制台 (http://localhost:8090)
+Exec=/home/orangepi/diag/console_start.sh
+Terminal=false
+X-GNOME-Autostart-enabled=true

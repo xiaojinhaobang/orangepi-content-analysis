@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.8)
+project(callback_check)
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
+add_executable(callback_check main.cpp)
+ament_target_dependencies(callback_check rclcpp std_msgs)

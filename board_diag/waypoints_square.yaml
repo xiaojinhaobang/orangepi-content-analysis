@@ -1,0 +1,15 @@
+# 1.5m x 1.5m 正方形环（与起飞时机头方向对齐）
+# 机头朝向 psi = 10.40 度（生成时刻的 map->dr_base yaw）
+#   前 = (cos psi, sin psi) = ( 0.9836,  0.1805)
+#   右 = (sin psi,-cos psi) = ( 0.1805, -0.9836)
+# 全程 yaw 不变：kp_yaw=0，航向由飞控自稳环保持
+tolerances: {pos_cm: 20.0, z_cm: 10.0, yaw_deg: 180.0, hold_s: 1.5}
+loop: false
+field: {x_min: -20.0, x_max: 190.0, y_min: -170.0, y_max: 40.0}
+obstacles: []
+waypoints:
+  - {name: takeoff, x:    0.0, y:    0.0, z: 120.0, yaw: 0.0}
+  - {name: fwd,     x:  147.5, y:   27.1, z: 120.0, yaw: 0.0}   # 前 1.5m
+  - {name: right,   x:  174.6, y: -120.5, z: 120.0, yaw: 0.0}   # 右 1.5m
+  - {name: back,    x:   27.1, y: -147.5, z: 120.0, yaw: 0.0}   # 后 1.5m
+  - {name: home,    x:    0.0, y:    0.0, z: 120.0, yaw: 0.0}   # 左 1.5m 回原点

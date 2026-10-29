@@ -18,3 +18,12 @@ __pycache__/
 *.bag
 *.db3
 
+# Release snapshot build artifacts
+release/**/build*/
+release/**/install/
+release/**/log/
+release/**/*.so
+release/**/*.a
+release/**/*.o
+release/**/*.exe
+

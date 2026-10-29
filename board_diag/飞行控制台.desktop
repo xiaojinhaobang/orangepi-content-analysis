@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=飞行控制台
+Comment=一键起链路 / 出航点 / 起飞降落（浏览器界面）
+Exec=/home/orangepi/diag/console_open.sh
+Icon=applications-science
+Terminal=false
+Categories=Utility;

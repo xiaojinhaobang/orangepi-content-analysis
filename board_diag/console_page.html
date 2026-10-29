@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>飞行控制台</title>
+<style>
+  :root{--bg:#12161c;--card:#1b2129;--fg:#e6edf3;--mut:#8b98a5;--ok:#3fb950;--bad:#f85149;--warn:#d29922;--acc:#388bfd}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.55 system-ui,-apple-system,"Segoe UI","Noto Sans CJK SC",sans-serif}
+  .wrap{max-width:1000px;margin:0 auto;padding:18px}
+  h1{font-size:21px;margin:0 0 4px}
+  .sub{color:var(--mut);font-size:13px;margin-bottom:16px}
+  .row{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:0}
+  button{flex:1 1 150px;padding:14px 16px;border-radius:10px;background:var(--card);color:var(--fg);
+    font-size:15px;font-weight:600;cursor:pointer;border:1px solid #2b333d}
+  button:hover{border-color:var(--acc)}
+  button.primary{background:var(--acc);border-color:var(--acc)}
+  button.warn{background:#8a5a00;border-color:#8a5a00}
+  button.danger{background:#8b2c26;border-color:#8b2c26}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  .card{background:var(--card);border-radius:12px;padding:14px 16px;margin-bottom:14px;border:1px solid #232a33}
+  .card h2{font-size:13px;margin:0 0 11px;color:var(--mut);font-weight:600;letter-spacing:.06em}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  td{padding:5px 0;border-bottom:1px solid #232a33}
+  td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+  .ok{color:var(--ok);font-weight:600}.bad{color:var(--bad);font-weight:600}.warn{color:var(--warn);font-weight:600}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:10px}
+  .kv{background:#151a21;border-radius:9px;padding:10px 12px}
+  .kv .k{color:var(--mut);font-size:12px}
+  .kv .val{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums}
+  select{padding:10px;border-radius:8px;border:1px solid #2b333d;background:#151a21;color:var(--fg);flex:2 1 260px}
+  input[type=number]{padding:10px;border-radius:8px;border:1px solid #2b333d;background:#151a21;color:var(--fg);width:110px;font-size:15px}
+  .msg{color:var(--acc);min-height:22px;font-size:13px;padding-top:6px}
+  .hint{color:var(--mut);font-size:12px;margin:8px 0 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>飞行控制台</h1>
+  <div class="sub" id="sub">连接中…</div>
+
+  <div class="card"><h2>第一步 · 起链路</h2>
+    <div class="row">
+      <button class="primary" onclick="act('start_link')">启动链路（悬停用）</button>
+      <button onclick="act('preflight')">自检</button>
+      <button class="danger" onclick="act('stop_link')">停止链路</button>
+    </div>
+  </div>
+
+  <div class="card"><h2>第二步 · 选航线（可选）</h2>
+    <div class="row">
+      <select id="wp"></select>
+      <button onclick="act('start_link_route')">启动链路 + 跑航线</button>
+      <button onclick="act('activate')">激活位置环</button>
+    </div>
+    <p class="hint">选航点表后点「启动链路 + 跑航线」：起链路 → 激活 → 自动执行整条航点序列。
+      只想原地悬停就点上面那个「启动链路（悬停用）」。</p>
+  </div>
+
+  <div class="card"><h2>任务准备（链路已热时用这两个，秒级）</h2>
+    <div class="row">
+      <button onclick="act('reset_origin')">① 重置原点</button>
+      <button onclick="loadRoute()">② 装载航线（用上面的下拉）</button>
+    </div>
+    <p class="hint">搬动飞机后必须先点「重置原点」，否则一起飞就冲出去。
+      航线表在第二步的下拉里选；装载只重启航点执行器，不重启整条链路。</p>
+  </div>
+
+  <div class="card"><h2>飞行</h2>
+    <div class="row" style="margin-bottom:10px">
+      <button class="primary" onclick="missionStart()" style="flex:3 1 320px">
+        ▶ 跑遍历任务（START 0：起飞→B面6格→换面→A面6格→降落）</button>
+      <button onclick="act('mission_node_start')">起任务节点</button>
+    </div>
+    <p class="hint">遍历任务的12个货位与参考货号在 <code>~/diag/mission_node.py</code>；
+      点前先遥控解锁。地面站点「开始任务」走的是同一条 /gs/start 通路。</p>
+    <div class="row" style="margin-bottom:10px">
+      <input id="gsip" type="text" value="192.168.137.1" style="width:150px">
+      <button onclick="gsBridge()">重启地面站桥（填电脑 IP）</button>
+    </div>
+    <div class="row">
+      <button class="primary" onclick="hoverTest()" style="flex:3 1 320px">
+        ★ 悬停自测（归零→起飞150→降到118→悬停12秒→自动降落）</button>
+      <input id="subset" type="text" value="A1,A2,A3,A4,A5,A6" style="width:210px;padding:6px" title="要飞的货位：A1,A2,A3（起飞点这侧 A 面 3 格）/ A1..A6（A 面全部）/ 留空=整块 12 格（A+B 两面）">
+      <button class="primary" onclick="traverse()">★ 开始遍历任务</button>
+    </div>
+    <div class="row">
+      <button class="warn" onclick="hoverTestFC()" style="flex:3 1 320px">
+        ★ 纯飞控自测（关我们的环→起飞→悬停20秒→自动降落）</button>
+      <input id="fchgt" type="number" value="110" min="20" max="500" title="纯飞控自测的起飞高度 cm（改这里就能改高度，默认 110）">
+    </div>
+    <p class="hint">点之前先遥控解锁（CH5 中档 + 油门回中 + CH6 解锁）。右边那个数字框是起飞高度（默认 110cm），
+      全程自动、结束自动锁定。</p>
+    <div class="row">
+      <button class="primary" onclick="act('takeoff120')">起飞 120cm</button>
+      <button onclick="act('takeoff150')">起飞 150cm</button>
+      <button onclick="act('land')">降落</button>
+      <button class="warn" onclick="act('lock')">锁定</button>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <input id="hgt" type="number" value="156" min="20" max="400">
+      <button onclick="setHeight()">改高度（0x66[1,h]）</button>
+      <button onclick="setHeight(156)">→156</button>
+      <button onclick="setHeight(116)">→116</button>
+      <button onclick="act('laser')">激光脉冲</button>
+    </div>
+    <p class="hint">「改高度」用于飞行中切换高度（货架航线需要 156↔116 来回切）。
+      156cm = 相机 150cm 对上排；116cm = 相机 110cm 对下排。激光脉冲测试 /laser/trigger。</p>
+    <p class="hint">起飞前必须先用遥控解锁：CH5 中档 → CH6 低档 1 秒 → 高档。</p>
+  </div>
+
+  <div class="card"><h2>记录</h2>
+    <div class="row">
+      <button onclick="act('record_start')">开始记录</button>
+      <button onclick="act('record_stop')">停止记录</button>
+    </div>
+    <p class="hint">记录写到板子 ~/traces/console_*.log</p>
+  </div>
+
+  <div class="card"><h2>实时状态</h2><div class="grid" id="grid"></div></div>
+
+  <div class="card"><h2>节点</h2><table id="nodes"></table></div>
+
+  <div class="card"><h2>自检结果</h2><table id="pf"><tr><td>尚未自检</td><td></td></tr></table></div>
+
+  <div class="msg" id="msg"></div>
+</div>
+
+<script>
+async function act(a){
+  const el = document.getElementById('msg');
+  el.textContent = '执行中…';
+  let body = '';
+  if (a === 'start_link_route') {
+    body = JSON.stringify({file: document.getElementById('wp').value});
+  }
+  const r = await fetch('/api/' + a, {method:'POST', headers:{'Content-Type':'application/json'}, body});
+  const j = await r.json();
+  el.textContent = j.message || '';
+  if (j.checks) showPF(j.checks);
+  refresh();
+}
+
+async function setHeight(v){
+  const el = document.getElementById('msg');
+  const h = Math.round(v || Number(document.getElementById('hgt').value) || 120);
+  el.textContent = '发 改高度 ' + h + 'cm …';
+  const r = await fetch('/api/set_height', {method:'POST',
+    headers:{'Content-Type':'application/json'}, body: JSON.stringify({h})});
+  const j = await r.json();
+  el.textContent = j.message || '';
+  refresh();
+}
+
+async function loadRoute(){
+  const el = document.getElementById('msg');
+  el.textContent = '装载航线中…';
+  const r = await fetch('/api/load_route', {method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({file: document.getElementById('wp').value})});
+  const j = await r.json();
+  el.textContent = j.message || '';
+  refresh();
+}
+
+async function hoverTest(){
+  const el = document.getElementById('msg');
+  el.textContent = '启动悬停自测…';
+  const r = await fetch('/api/hover_test', {method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({takeoff:160, hover_z:118, hover_s:12})});
+  const j = await r.json();
+  el.textContent = j.message || '';
+  refresh();
+}
+
+async function hoverTestFC(){
+  const el = document.getElementById('msg');
+  const box = document.getElementById('fchgt');
+  const h = Math.round(Number(box && box.value) || 110);
+  if(!confirm('纯飞控自测：先关掉我们的位置环，再由飞控自己起飞 ' + h + 'cm → 悬停 20 秒 → 降落 → 锁定。\n\n确认：场地清空、飞控已解锁（CH5 中档 + CH6）。')) return;
+  el.textContent = '启动纯飞控自测（' + h + 'cm / 20秒）…';
+  const r = await fetch('/api/hover_test_fc', {method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({takeoff:h, hover_s:20})});
+  const j = await r.json();
+  el.textContent = j.message || '';
+  refresh();
+}
+
+async function missionStart(){
+  const el = document.getElementById('msg');
+  el.textContent = '发 /gs/start=0 …';
+  const r = await fetch('/api/mission_start', {method:'POST',
+    headers:{'Content-Type':'application/json'}, body: JSON.stringify({mode:0})});
+  const j = await r.json();
+  el.textContent = j.message || '';
+  refresh();
+}
+
+async function gsBridge(){
+  const el = document.getElementById('msg');
+  el.textContent = '重启地面站桥…';
+  const gs_ip = document.getElementById('gsip').value.trim();
+  const r = await fetch('/api/gs_bridge', {method:'POST',
+    headers:{'Content-Type':'application/json'}, body: JSON.stringify({gs_ip})});
+  const j = await r.json();
+  el.textContent = j.message || '';
+  refresh();
+}
+
+function showPF(cs){
+  document.getElementById('pf').innerHTML = cs.map(c =>
+    `<tr><td>${c[0]}</td><td class="${c[1]}">${c[2]}</td></tr>`).join('');
+}
+
+async function refresh(){
+  let s;
+  try { s = await (await fetch('/api/status')).json(); } catch(e) { return; }
+  document.getElementById('sub').textContent =
+    `${s.time} · 链路${s.link ? (s.ready ? '就绪' : '启动中') : '已停止'}`
+    + ` · 记录${s.recording ? '中' : '关'} · ${s.message || ''}`;
+
+  const fc = s.fc || [];
+  const t = s.tv || [];
+  const p = s.pose || [];
+  const cells = [
+    ['高度 (cm)', s.height ?? '—', ''],
+    ['位置 x (cm)', p.length ? p[0] : '—', ''],
+    ['位置 y (cm)', p.length ? p[1] : '—', ''],
+    ['机头 psi (°)', p.length ? p[2] : '—', ''],
+    ['水平指令 (cm/s)', t.length ? `${t[0]}, ${t[1]}` : '—', ''],
+    ['飞控模式', fc.length ? fc[0] : '—', fc[0] === 2 ? 'ok' : 'warn'],
+    ['解锁', fc[1] === 1 ? '已解锁' : (fc[1] === 0 ? '上锁' : '—'), fc[1] === 1 ? 'ok' : ''],
+    ['雷达 (Hz)', s.scan_hz, s.scan_hz >= 8 ? 'ok' : 'bad'],
+  ];
+  document.getElementById('grid').innerHTML = cells.map(c =>
+    `<div class="kv"><div class="k">${c[0]}</div><div class="val ${c[2]}">${c[1]}</div></div>`).join('');
+
+  const n = s.nodes || {};
+  document.getElementById('nodes').innerHTML =
+    Object.entries(n).map(([k, v]) =>
+      `<tr><td>${k}</td><td class="${v > 0 ? 'ok' : 'bad'}">${v}</td></tr>`).join('')
+    + `<tr><td>航点状态</td><td>${(s.wp || '—').slice(0, 46)}</td></tr>`
+    + `<tr><td>飞控回执 LEN</td><td>${s.link_len ?? '—'}</td></tr>`;
+
+  if (!window._wpLoaded) {
+    window._wpLoaded = 1;
+    fetch('/api/waypoints').then(r => r.json()).then(list => {
+      document.getElementById('wp').innerHTML = list.map(f => `<option>${f}</option>`).join('');
+    });
+  }
+}
+
+async function loop(){ try { await refresh(); } catch(e){} setTimeout(loop, 700); }
+loop();
+
+async function traverse(){
+  const el = document.getElementById('msg');
+  const s = (document.getElementById('subset')||{}).value || '';
+  el.textContent = '启动遍历任务…（自检→起任务节点→触发）';
+  try{
+    const r = await fetch('/api/traverse', {method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({subset: s})});
+    const j = await r.json();
+    el.textContent = j.message || '已发送';
+  }catch(e){ el.textContent = '启动失败: ' + e; }
+}
+</script>
+</body>
+</html>

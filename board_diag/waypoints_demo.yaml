@@ -1,0 +1,30 @@
+# 航点表 + 简易地图（单位：cm / 度）
+# 用法: waypoint_nav.py --ros-args -p file:=/home/orangepi/diag/waypoints_demo.yaml
+
+# 到点判据
+tolerances:
+  pos_cm: 15.0      # 水平到点容差
+  z_cm: 8.0         # 高度容差
+  yaw_deg: 10.0     # 航向容差
+  hold_s: 2.0       # 满足容差后需保持多久才算到点
+
+loop: false          # true = 走完循环
+
+# 简易地图：作业区边界 + 障碍物（导航本身不用，给地面站显示/避障判断用）
+field:
+  x_min: 0.0
+  x_max: 400.0
+  y_min: 0.0
+  y_max: 500.0
+obstacles:
+  - {name: shelf_A, x_min: 120.0, x_max: 180.0, y_min: 200.0, y_max: 380.0}
+  - {name: shelf_B, x_min: 220.0, x_max: 280.0, y_min: 200.0, y_max: 380.0}
+
+# 航点序列（原地起飞 -> 直线飞 -> 回来 -> 降落）
+waypoints:
+  - {name: takeoff, x: 0.0,   y: 0.0,   z: 100.0, yaw: 0.0}
+  - {name: p1,      x: 300.0, y: 0.0,   z: 150.0, yaw: 0.0}
+  - {name: p2,      x: 300.0, y: 250.0, z: 150.0, yaw: 90.0}
+  - {name: p3,      x: 0.0,   y: 250.0, z: 150.0, yaw: 180.0}
+  - {name: home,    x: 0.0,   y: 0.0,   z: 100.0, yaw: 0.0}
+  - {name: land,    x: 0.0,   y: 0.0,   z: 6.0,   yaw: 0.0}

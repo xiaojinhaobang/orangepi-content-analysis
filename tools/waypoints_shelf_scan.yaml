@@ -1,0 +1,22 @@
+# 连续扫描航线：B1-B3 / B6-B4 / 绕板 / A3-A1 / A4-A6 / 降落（一帧一个码，相机距板面 0.35m）
+# 坐标单位 cm，原点=起飞点，+x=起飞时机头方向（自动生成，勿手改）
+# 生成用 psi0 = 12.00 度
+tolerances: {pos_cm: 25.0, z_cm: 10.0, yaw_deg: 180.0, hold_s: 2.0}
+loop: false
+field: {x_min: -400.0, x_max: 400.0, y_min: -400.0, y_max: 400.0}
+obstacles: []
+waypoints:
+  - {name: takeoff, x: 0.0, y: 0.0, z: 156, yaw: 0.0}
+  - {name: B1, x: 53.6, y: 172.6, z: 156, yaw: 0.0}
+  - {name: B2, x: 43.2, y: 123.7, z: 156, yaw: 0.0}
+  - {name: B3, x: 32.8, y: 74.8, z: 156, yaw: 0.0}
+  - {name: B6, x: 32.8, y: 74.8, z: 116, yaw: 0.0}
+  - {name: B5, x: 43.2, y: 123.7, z: 116, yaw: 0.0}
+  - {name: B4, x: 53.6, y: 172.6, z: 116, yaw: 0.0}
+  - {name: A3, x: 168.0, y: 148.3, z: 156, yaw: 0.0}
+  - {name: A2, x: 157.6, y: 99.4, z: 156, yaw: 0.0}
+  - {name: A1, x: 147.2, y: 50.5, z: 156, yaw: 0.0}
+  - {name: A4, x: 147.2, y: 50.5, z: 116, yaw: 0.0}
+  - {name: A5, x: 157.6, y: 99.4, z: 116, yaw: 0.0}
+  - {name: A6, x: 168.0, y: 148.3, z: 116, yaw: 0.0}
+  - {name: land, x: 202.9, y: 232.9, z: 120.0, yaw: 0.0}

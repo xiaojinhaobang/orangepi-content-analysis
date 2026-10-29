@@ -1,0 +1,16 @@
+# 2x2m 简易地图：起飞点 -> 对角线端点 -> 回原点
+# 原点左下角, 起飞点(0,0), +x 向右, +y 向上, 单位 cm
+#
+# 注意 yaw_deg 容差设成 180（等于不做航向判据）：
+#   我们的偏航环已关闭 (kp_yaw=0)，航向由飞控自稳环保持，
+#   而机头在地图里的朝向是随机的（取决于 cartographer 启动时刻），
+#   所以航点里的 yaw 不参与判定，避免"永远到不了"卡死。
+tolerances: {pos_cm: 20.0, z_cm: 10.0, yaw_deg: 180.0, hold_s: 1.5}
+loop: false
+field: {x_min: 0.0, x_max: 200.0, y_min: 0.0, y_max: 200.0}
+obstacles: []
+waypoints:
+  # 第一次试飞：先飞半程对角线 (1.41m)。成功后再把 diag 改成 200/200 (2.83m)
+  - {name: takeoff, x: 0.0,   y: 0.0,   z: 120.0, yaw: 0.0}
+  - {name: diag,    x: 100.0, y: 100.0, z: 120.0, yaw: 0.0}
+  - {name: home,    x: 0.0,   y: 0.0,   z: 120.0, yaw: 0.0}

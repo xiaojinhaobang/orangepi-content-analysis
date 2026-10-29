@@ -1,0 +1,31 @@
+/**:
+  ros__parameters:
+    control_frequency: 50.0
+    height_filter_jump_threshold_cm: 100.0
+    height_filter_required_frames: 1
+    height_max_cm: 250.0
+    height_min_cm: 0.0
+    height_tolerance: 6.0
+    kd_xy: 0.05
+    kd_yaw: 0.0
+    kd_z: 0.2
+    ki_xy: 0.0
+    ki_yaw: 0.04
+    ki_z: 0.0
+    kp_xy: 0.3
+    kp_yaw: 0.0
+    kp_z: 1.0
+    laser_link_frame: dr_base
+    map_frame: map
+    max_angular_velocity: 30.0
+    max_linear_velocity: 22.0
+    max_slow_velocity: 15.0
+    max_vertical_velocity: 30.0
+    pose_data_timeout_sec: 0.5
+    position_tolerance: 4.0
+    takeoff_max_xy_velocity: 12.0
+    vertical_takeoff_index: 1
+    vertical_takeoff_min_z_cm: 20.0
+    xy_deadband_cm: 2.0
+    yaw_deadband_deg: 0.5
+    yaw_tolerance: 5.0

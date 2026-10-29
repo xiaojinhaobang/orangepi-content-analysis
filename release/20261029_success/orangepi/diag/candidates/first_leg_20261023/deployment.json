@@ -1,0 +1,28 @@
+{
+  "backup": "/home/orangepi/diag/backups/first_leg_20261023_212925",
+  "ground": {
+    "t": "2965.12",
+    "h": "1",
+    "mode_sta": "1",
+    "unlock_sta": "0",
+    "mode_cmd": "1",
+    "unlock_cmd": "0",
+    "cid": "16",
+    "cmd0": "0",
+    "cmd1": "4",
+    "thr": "32",
+    "ms": "1",
+    "pwm": "0.0",
+    "pwm0": "0.0",
+    "pwm1": "0.0",
+    "pwm2": "0.0",
+    "pwm3": "0.0"
+  },
+  "source_sha": {
+    "uart_to_stm32.cpp": "8e07c7843b8190d1fd2747f333ca88e973a439916455eafcd0ef108b24c794ec",
+    "uart_to_stm32.hpp": "e0cb0ad702c714db4132e6bfabc8dee0b49a4e8ed447acba2662afd4996b3fe8",
+    "mission_node.py": "10c0bc8ffe6ab9dde6c7b4f1aaa5e0bf2997fea76e006357b017ee5e2664edc3"
+  },
+  "binary_sha": "e6b2c4b7769b4e4d5c7e45996500932edf62f3c54bc25b7b053bde11177a581d",
+  "scope": "UART async A2 and mission readiness only; no flight command"
+}

@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>D题 · 单板双面盘点 · 网页地面站</title>
+<style>
+  :root{--bg:#0f1319;--card:#181e26;--fg:#e6edf3;--mut:#8b98a5;--ok:#3fb950;--bad:#f85149;
+        --warn:#d29922;--acc:#388bfd;--cell:#f1f3f4}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font:15px/1.5 system-ui,-apple-system,"Segoe UI","Noto Sans CJK SC",sans-serif}
+  .wrap{max-width:1100px;margin:0 auto;padding:14px}
+  h1{font-size:19px;margin:0 0 6px}
+  .sub{color:var(--mut);font-size:13px;margin-bottom:12px}
+  .card{background:var(--card);border:1px solid #232a33;border-radius:12px;padding:12px 14px;margin-bottom:12px}
+  .card h2{font-size:12px;margin:0 0 10px;color:var(--mut);font-weight:600;letter-spacing:.06em}
+  .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  button{padding:10px 14px;border-radius:9px;background:#212832;color:var(--fg);border:1px solid #2b333d;
+         font-size:14px;font-weight:600;cursor:pointer}
+  button:hover{border-color:var(--acc)}
+  button.primary{background:var(--acc);border-color:var(--acc)}
+  button.warn{background:#8a5a00;border-color:#8a5a00}
+  button.danger{background:#8b2c26;border-color:#8b2c26}
+  input,select{padding:9px 10px;border-radius:8px;border:1px solid #2b333d;background:#121821;
+               color:var(--fg);font-size:14px}
+  input.ip{width:150px}
+  input.num{width:90px}
+  .kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
+  .kv>div{background:#121821;border-radius:9px;padding:8px 10px}
+  .kv .k{color:var(--mut);font-size:11px}
+  .kv .v{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}
+  .stages{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+  .stages .s{padding:4px 8px;border-radius:7px;background:#1d242e;color:#7d8894;font-size:12.5px}
+  .stages .s.done{background:#12321c;color:var(--ok)}
+  .stages .s.cur{background:var(--acc);color:#fff;font-weight:700}
+  .sep{color:#3a4450}
+  .grid{display:grid;grid-template-columns:repeat(6,1fr);gap:7px}
+  .cell{border:2px solid #2b333d;border-radius:9px;padding:7px 4px;text-align:center;background:#121821}
+  .cell .nm{font-size:12px;color:var(--mut)}
+  .cell .ref{font-size:10.5px;color:#6b7684}
+  .cell .num{font-size:19px;font-weight:800;font-variant-numeric:tabular-nums}
+  .cell.hit{border-color:var(--ok);background:#0f2417}
+  .cell.hit .num{color:var(--ok)}
+  .cell.diff{border-color:#e37400;background:#2a1f0c}
+  .cell.diff .num{color:var(--warn)}
+  .cell.fill{border-color:var(--acc);background:#0f1b2d}
+  .cell.fill .num{color:#7cb2ff}
+  .rowlabel{font-size:12px;color:var(--mut);text-align:right;padding-right:2px;align-self:center}
+  .bar{height:16px;background:#121821;border-radius:8px;overflow:hidden;border:1px solid #232a33}
+  .bar>i{display:block;height:100%;background:linear-gradient(90deg,#388bfd,#3fb950);width:0}
+  #log{background:#0c1116;border-radius:8px;padding:8px 10px;height:150px;overflow:auto;
+       font:12.5px/1.45 ui-monospace,Consolas,monospace;color:#a9b6c2;white-space:pre-wrap}
+  .msg{color:var(--acc);font-size:13px;min-height:20px}
+  .hint{color:var(--mut);font-size:12px;margin-top:8px}
+  .ok{color:var(--ok)}.bad{color:var(--bad)}.warn{color:var(--warn)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>D题 · 单板双面盘点 · 网页地面站</h1>
+  <div class="sub" id="sub">连接中…</div>
+
+  <div class="card">
+    <h2>链路 / 任务</h2>
+    <div class="row">
+      <span class="mut">机载 IP</span><input class="ip" id="ip" value="192.168.137.186">
+      <span class="mut">UDP 端口</span><input class="num" id="port" value="8888">
+      <button onclick="connect()">连接机载</button>
+      <button class="danger" onclick="act('/api/disconnect',{})">断开</button>
+      <button class="primary" onclick="act('/api/start',{mode:0})">▶ 开始任务（遍历盘点）</button>
+      <button onclick="act('/api/sim',{on:true,interval_ms:900})">内置模拟</button>
+      <button onclick="act('/api/sim',{on:false})">停模拟</button>
+      <button class="warn" onclick="act('/api/reset',{})">清空复位</button>
+    </div>
+    <div class="hint">任务由机载端（香橙派 mission_node）执行：起飞 → 扫 B 面 6 格 → 绕白板端部 → 扫 A 面 6 格 → 降落。
+      本页面只下发 START 并被动接收结果。<b>UDP 8888 是独占的</b>，网页版和桌面版别同时开。</div>
+    <div class="msg" id="msg"></div>
+  </div>
+
+  <div class="card">
+    <h2>无人机状态</h2>
+    <div class="kv" id="dronestate"></div>
+    <div style="margin-top:10px" class="bar"><i id="prog"></i></div>
+    <div class="hint" id="progtext">已盘点 0 / 12</div>
+  </div>
+
+  <div class="card">
+    <h2>遍历流程阶段</h2>
+    <div class="stages" id="stages"></div>
+  </div>
+
+  <div class="card">
+    <h2>盘点结果总览（含参考货号对照）</h2>
+    <div class="grid" id="grid"></div>
+    <div class="hint">参考货号来自《方案基线》§1.1 离线样本；现场货号随机，实际以现场识别为准
+      （<span class="ok">✓ 与参考一致</span> / <span class="warn">≠ 不同</span> / — 未盘点）。</div>
+  </div>
+
+  <div class="card">
+    <h2>货物查询</h2>
+    <div class="row">
+      <input class="num" id="qnum" placeholder="货号" maxlength="3">
+      <button onclick="query()">查坐标</button>
+      <span class="msg" id="qres"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>事件日志（最近 60 条）</h2>
+    <div id="log"></div>
+  </div>
+</div>
+
+<script>
+let lastTime = '';
+
+async function act(url, body){
+  const el = document.getElementById('msg');
+  el.textContent = '执行中…';
+  try{
+    const r = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'},
+                                body: JSON.stringify(body||{})});
+    const j = await r.json();
+    el.textContent = j.message || '';
+  }catch(e){ el.textContent = '请求失败：' + e; }
+  refresh();
+}
+
+function connect(){
+  const ip = document.getElementById('ip').value.trim();
+  const port = Number(document.getElementById('port').value) || 8888;
+  act('/api/connect', {ip, port});
+}
+
+async function query(){
+  const num = Number(document.getElementById('qnum').value);
+  if(!num){ document.getElementById('qres').textContent = '请输入货号'; return; }
+  const r = await fetch('/api/query', {method:'POST', headers:{'Content-Type':'application/json'},
+                                      body: JSON.stringify({num})});
+  const j = await r.json();
+  document.getElementById('qres').textContent = j.message || '';
+}
+
+function render(s){
+  document.getElementById('sub').innerHTML =
+    `${s.time} · ${s.connected ? (s.alive ? '<span class="ok">链路在线</span>'
+                                          : '<span class="warn">已连接但无数据</span>')
+                               : (s.mode === 'sim' ? '内置模拟' : '未连接')}`
+    + ` · 模式 ${s.mode} · 帧 ${s.frames} · 错误 ${s.errors}`;
+
+  const d = s.drone;
+  const kv = [
+    ['状态', `<span class="${d.state===4&&s.done? 'ok':''}">${d.state_name}</span>`],
+    ['高度', d.height + ' cm'],
+    ['电量', d.battery == null ? '—' : d.battery + ' %'],
+    ['识别报送', d.report == null ? '—' : d.report],
+    ['链路', s.mode === 'ros' ? '<span class="ok">板上 ROS 直连</span>'
+                              : (s.mode === 'udp' ? 'UDP' : (s.mode === 'sim' ? '内置模拟' : '未连接'))],
+    ['已盘点', s.done + ' / ' + s.total],
+  ];
+  document.getElementById('dronestate').innerHTML = kv.map(
+    ([k,v]) => `<div><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
+  document.getElementById('prog').style.width = (100 * s.done / s.total) + '%';
+  document.getElementById('progtext').innerHTML =
+    `已盘点 ${s.done} / ${s.total}` + (s.done >= s.total ? ' <span class="ok">全部完成 ✓</span>' : '');
+
+  document.getElementById('stages').innerHTML = s.stages.map(
+    (name,i) => `<span class="s ${i===s.stage?'cur':(i<s.stage?'done':'')}">${name}</span>`
+      ).join('<span class="sep">›</span>');
+
+  const byFace = {0:[], 1:[]};
+  s.cells.forEach(c => byFace[c.face].push(c));
+  let html = '';
+  ['A','B'].forEach((faceName, fi) => {
+    html += `<div class="rowlabel">${faceName} 面</div>`;
+    byFace[fi].forEach(c => {
+      let cls = 'cell', num = '—';
+      if (c.num != null){
+        num = c.num;
+        cls += c.ref == null ? ' fill' : (c.num === c.ref ? ' hit' : ' diff');
+        if (c.ref != null && c.num !== c.ref) num += ' ≠';
+        else if (c.ref != null) num += ' ✓';
+      }
+      html += `<div class="${cls}"><div class="nm">${c.name}</div>`
+            + `<div class="ref">参考 ${c.ref ?? '—'}</div>`
+            + `<div class="num">${num}</div></div>`;
+    });
+  });
+  document.getElementById('grid').innerHTML = html;
+
+  const log = document.getElementById('log');
+  const text = (s.log || []).join('\n');
+  if (text !== log.dataset.t){
+    log.dataset.t = text;
+    const atBottom = log.scrollTop + log.clientHeight >= log.scrollHeight - 20;
+    log.textContent = text;
+    if (atBottom) log.scrollTop = log.scrollHeight;
+  }
+}
+
+async function refresh(){
+  try{
+    const s = await (await fetch('/api/state')).json();
+    render(s);
+  }catch(e){ /* 忽略瞬时失败 */ }
+}
+
+refresh();
+setInterval(refresh, 500);
+document.getElementById('qnum').addEventListener('keydown', e => { if(e.key === 'Enter') query(); });
+</script>
+</body>
+</html>

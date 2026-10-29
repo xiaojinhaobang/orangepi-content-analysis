@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package format="3">
+  <name>qr_vision</name>
+  <version>0.1.0</version>
+  <description>D题二维码盘点视觉节点（OpenCV 解码 + ROS2 包装）</description>
+  <maintainer email="orangepi@todo.todo">orangepi</maintainer>
+  <license>MIT</license>
+
+  <depend>rclpy</depend>
+  <depend>std_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>cv_bridge</depend>
+  <depend>python3-opencv</depend>
+  <depend>python3-numpy</depend>
+
+  <test_depend>ament_copyright</test_depend>
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
