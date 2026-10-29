@@ -1,0 +1,11 @@
+[Unit]
+Description=Periodically prefer the Magic7 hotspot
+
+[Timer]
+OnBootSec=60
+OnUnitActiveSec=30
+AccuracySec=5s
+Unit=orangepi-prefer-magic7.service
+
+[Install]
+WantedBy=timers.target

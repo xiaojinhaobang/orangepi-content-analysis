@@ -1,0 +1,8 @@
+[Unit]
+Description=Switch WiFi back to the Magic7 hotspot when it becomes available
+After=NetworkManager.service
+Wants=NetworkManager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/orangepi-prefer-magic7.sh

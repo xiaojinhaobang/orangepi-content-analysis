@@ -1,0 +1,43 @@
+# 简易地图 1 —— 300x300 cm 场地（3m x 3m），实际绕圈 200x200 cm（2m x 2m）
+#
+# 坐标约定（用户 2026-09-26 确认）
+#   原点 origin : 场地【左下角】
+#   起飞点      : (0, 0)，机头 yaw = 0
+#   +x          : 向右
+#   +y          : 向上（从 origin 指向场内）
+#   单位        : cm
+#
+# 设计说明
+#   1. 场地 3m x 3m；绕圈路径离边界留 50cm，即实际飞 2m x 2m 的矩形圈
+#   2. 全程 yaw = 0 —— 故意不转向：这样"注入速度是机体系还是地面系"
+#      这个未决问题不影响本次测试（yaw=0 时机体系 ≡ 地面系）
+#   3. 第 2 个航点(索引 1)是进圈第一腿，会被飞控侧"垂直起飞保护"
+#      限速到 8cm/s（pid_control_pkg 的 vertical_takeoff_index=1）
+#   4. 航迹：起飞 -> 进圈 -> 底边 -> 右边 -> 顶边 -> 左边 -> 回起飞点 -> 降落
+
+tolerances:
+  pos_cm: 20.0
+  z_cm: 8.0
+  yaw_deg: 10.0
+  hold_s: 2.0
+
+loop: false
+margin_cm: 50.0
+
+field:
+  x_min: 0.0
+  x_max: 300.0
+  y_min: 0.0
+  y_max: 300.0
+
+obstacles: []
+
+waypoints:
+  - {name: takeoff, x: 0.0,   y: 0.0,   z: 150.0, yaw: 0.0}
+  - {name: sw,      x: 50.0,  y: 50.0,  z: 150.0, yaw: 0.0}
+  - {name: se,      x: 250.0, y: 50.0,  z: 150.0, yaw: 0.0}
+  - {name: ne,      x: 250.0, y: 250.0, z: 150.0, yaw: 0.0}
+  - {name: nw,      x: 50.0,  y: 250.0, z: 150.0, yaw: 0.0}
+  - {name: sw2,     x: 50.0,  y: 50.0,  z: 150.0, yaw: 0.0}
+  - {name: home,    x: 0.0,   y: 0.0,   z: 150.0, yaw: 0.0}
+  - {name: land,    x: 0.0,   y: 0.0,   z: 6.0,   yaw: 0.0}
